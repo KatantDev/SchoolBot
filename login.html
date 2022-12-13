@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+    <meta name="format-detection" content="telephone=no"/>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+    <meta name="MobileOptimized" content="176"/>
+    <meta name="HandheldFriendly" content="True"/>
+    <meta name="robots" content="noindex,nofollow"/>
+    <script src="https://telegram.org/js/telegram-web-app.js?1"></script>
+    <script>
+        function setThemeClass() {
+            document.documentElement.className = Telegram.WebApp.colorScheme;
+        }
+
+        Telegram.WebApp.onEvent('themeChanged', setThemeClass);
+        setThemeClass();
+
+    </script>
+    <style>
+        body {
+            font-family: sans-serif;
+            background-color: var(--tg-theme-bg-color, #ffffff);
+            color: var(--tg-theme-text-color, #222222);
+            font-size: 14px;
+            margin: 0;
+            padding: 0;
+            color-scheme: var(--tg-color-scheme);
+        }
+
+        div {
+            display: flex;
+            flex-direction: column-reverse;
+            max-width: 20rem;
+            margin: 0 auto;
+        }
+
+        input {
+            border: none;
+            border-radius: 0;
+            background-color: var(--tg-theme-bg-color, #ffffff);
+            padding: 1rem;
+            margin-top: 0.8rem;
+            font-size: 14px;
+            border-bottom: 0.1rem solid var(--tg-theme-text-color, #bdbdbd);
+            outline: none;
+        }
+
+        label {
+            text-align: left;
+            padding-left: 1rem;
+            color: var(--tg-theme-text-color, #bdbdbd);
+            transform: translateY(2.8rem);
+            transform-origin: left top;
+            cursor: text;
+            transition: all 0.3s;
+        }
+
+        input:focus,
+        input:not(:placeholder-shown) {
+            border-bottom: 0.1rem solid var(--tg-theme-text-color, #212121);
+        }
+
+
+        input:focus ~ label,
+        input:not(:placeholder-shown) ~ label {
+           padding: 0;
+           color: var(--tg-theme-text-color, #212121);
+           transform: translateY(1.5rem) scale(0.8);
+        }
+
+        button {
+            display: inline-block;
+            width: 25%;
+            font-size: 14px;
+            margin: 15px 0;
+            padding: 12px 0;
+            border: none;
+            border-radius: 10px;
+            background-color: var(--tg-theme-button-color, #50a8eb);
+            color: var(--tg-theme-button-text-color, #ffffff);
+            cursor: pointer;
+        }
+
+        button[disabled] {
+            opacity: 0.6;
+            cursor: auto;
+            pointer-events: none;
+        }
+
+        button.close_btn {
+            /*position: fixed;*/
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border-radius: 0;
+            margin: 0;
+            padding: 16px 20px;
+            text-transform: uppercase;
+        }
+
+        section {
+            padding: 15px 15px 65px;
+            text-align: center;
+        }
+
+        .hint {
+            font-size: .9em;
+            color: var(--tg-theme-hint-color, #a8a8a8);
+        }
+
+        .ok {
+            color: var(--tg-theme-button-color, #50a8eb);
+        }
+
+        .err {
+            color: red;
+        }
+
+        #fixed_wrap {
+            position: fixed;
+            left: 0;
+            right: 0;
+            top: 0;
+            transform: translateY(100vh);
+        }
+
+    </style>
+</head>
+<body style="visibility: hidden;">
+<section>
+    <div>
+        <input id="login" name="Логин" placeholder=" ">
+        <label class="text-field__label" for="login">Логин</label>
+    </div>
+    <div>
+        <input id="password" type="password" name="Пароль" placeholder=" ">
+        <label class="text-field__label" for="password">Пароль</label>
+    </div>
+    <button id="main_btn" onclick="sendMessage('');">Войти</button>
+    <div id="btn_status" class="hint" style="display: none;"></div>
+</section>
+<script src="https://webappcontent.telegram.org/js/jquery.min.js"></script>
+<script>
+    Telegram.WebApp.ready();
+
+    var initData = Telegram.WebApp.initData || '';
+    var initDataUnsafe = Telegram.WebApp.initDataUnsafe || {};
+
+    function sendMessage(msg_id) {
+        var login = document.getElementById("login");
+        var password = document.getElementById("password");
+        if (!initDataUnsafe.query_id) {
+            alert('WebViewQueryId not defined');
+            return;
+        }
+        $('button').prop('disabled', true);
+        $('#btn_status').text('Проверяю...').removeClass('ok err').show();
+        $.ajax('/login/sendMessage', {
+            type: 'POST',
+            data: {
+                _auth: initData,
+                user_id: initDataUnsafe.user.id,
+                msg_id: msg_id || '',
+                login: login.value,
+                password: password.value
+            },
+            dataType: 'json',
+            success: function (result) {
+                $('button').prop('disabled', false);
+                if (result.ok) {
+                    Telegram.WebApp.close();
+                } else {
+                    $('#btn_status').text(result.payload).addClass('err').show();
+                    alert(result.response.description);
+                }
+            },
+            error: function (xhr) {
+                $('button').prop('disabled', false);
+                $('#btn_status').text('Ошибка сервера').addClass('err').show();
+                alert('Ошибка сервера');
+            }
+        });
+    }
+
+    function webviewClose() {
+        Telegram.WebApp.close();
+    }
+
+
+    $('#main_btn').toggle(!!initDataUnsafe.query_id);
+    $('body').css('visibility', '');
+    Telegram.WebApp.MainButton
+        .setText('Закрыть')
+        .show()
+        .onClick(function () {
+            webviewClose();
+        });
+
+
+</script>
+</body>
+</html>
